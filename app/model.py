@@ -21,6 +21,7 @@ class Msg(db.Model, Father):
     anonymous = db.Column(db.Boolean)
     longitude = db.Column(db.Float)
     latitude = db.Column(db.Float)
+    overall_score = db.Column(db.Float)
 
 
 class Comment(db.Model, Father):
@@ -32,6 +33,7 @@ class Comment(db.Model, Father):
     target_id = db.Column(db.String(40))
     time = db.Column(db.DateTime)
     anonymous = db.Column(db.Boolean)
+    visible = db.Column(db.Boolean)
 
 
 class User(db.Model, Father):
@@ -40,3 +42,13 @@ class User(db.Model, Father):
     nickname = db.Column(db.String(20))
     head_img = db.Column(db.String(50))
     label = db.Column(db.String(50))
+
+
+class Zan(db.Model,Father):
+    __tablename__ = 'zan'
+    id = db.Column(db.BigInteger, primary_key=True)
+    msg_id = db.Column(db.BigInteger, db.ForeignKey('msg.id'))
+    author_id = db.Column(db.String(40), db.ForeignKey('user.openid'))
+    status = db.Column(db.Boolean)  # 1√ 0×
+
+

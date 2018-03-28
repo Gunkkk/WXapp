@@ -22,6 +22,7 @@ class Msg(db.Model, Father):
     longitude = db.Column(db.Float)
     latitude = db.Column(db.Float)
     overall_score = db.Column(db.Float)
+    hit_times = db.Column(db.BigInteger)
 
 
 class Comment(db.Model, Father):

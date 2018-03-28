@@ -170,7 +170,8 @@ def getcomments(msgid):
              longitude:"",
              latitude:"",
              comment_num:"",
-             zan_status:0/1
+             zan_status:0/1,
+             hit_times:""
              },
              {},…
              ]
@@ -315,7 +316,7 @@ def get_hot_msg():
     可以根据index来进行缓存
     不需要手动删除缓存，随着时间自己失效即可
     因为数据库设置time events 计算综合得分
-    根据距计算时间的值、score、评论数三个变量来建立模型进行热门推荐的得分计算
+    根据距计算时间的值、score、评论数、点击量四个变量来建立模型进行热门推荐的得分计算
 '''
 
 

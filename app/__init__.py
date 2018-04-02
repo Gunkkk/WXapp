@@ -11,7 +11,7 @@ cache = Cache(config={
         "CACHE_REDIS_PASSWORD": ""
 })
 app = Flask(__name__)
-app.config.from_object('dbconfig')
+app.config.from_pyfile('dbconfig.py')
 
 
 db = SQLAlchemy(app)

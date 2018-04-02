@@ -1,6 +1,6 @@
 from .import msg
 from app import db, cache, filter
-from app.model import Msg, Comment, User, Zan
+from app.model import Msg, Comment, User, Zan, MsgInfo
 from flask import request, jsonify
 
 '''
@@ -42,12 +42,12 @@ def add_msg():
     longitude = receive['longitude']
     latitude = receive['latitude']
 
-    cache.delete_memoized(getmsg)
+    #cache.delete_memoized(getmsg)
     # 删除缓存
     # 被遗忘而不会被删除 设定较短生存周期
-    msg = Msg(author_id=openid, content=content,
-              score=0, time=datetime, anonymous=anonymous,
-              longitude=longitude, latitude=latitude )
+    msg = Msg(author_id=openid, content=content,  # 需要一个触发器进行msginfo的初始化
+              time=datetime, anonymous=anonymous,
+              longitude=longitude, latitude=latitude)
     db.session.add(msg)
     #try:
     db.session.commit()
@@ -160,7 +160,7 @@ def getcomments(msgid):
 {
     msglist:[
             {
-            author_id:"",
+             author_id:"",
              nickname:"",
              head_img:"",
              content:"",
@@ -194,12 +194,17 @@ def get_msg():
 '''
 
 
-@cache.memoize(timeout=300)
+#@cache.memoize(timeout=300)
 def getmsg(indexf, indext):
     msgs = db.session.query(Msg).order_by(db.desc(Msg.time)).offset(indexf).limit(int(indext) - int(indexf) + 1)
     msglist = []
     for i in msgs:
         i = i.get_dict()
+        id = i['id']
+        msg_info = db.session.query(MsgInfo).filter_by(msg_id=id).first()
+        i['score'] = msg_info.score
+        i['hit_times'] = msg_info.hit_times
+
         i['content'] = f.filter(i['content'])
         i['nickname'] = db.session.query(User.nickname).filter_by(openid=i['author_id']).first().nickname
         i['head_img'] = db.session.query(User.head_img).filter_by(openid=i['author_id']).first().head_img
@@ -250,9 +255,9 @@ def add_scores():
         like_flag = i['like_flag']
         zan = Zan(msg_id=msg_id, author_id=openid, status=bool(like_flag))
         db.session.add(zan)
-        msg = Msg.query.filter_by(id=msg_id).first()
-        msg.score = msg.score - 1 + 2*int(like_flag)
-        db.session.add(msg)
+        msg_info = MsgInfo.query.filter_by(id=msg_id).first()
+        msg_info.score = msg_info.score - 1 + 2*int(like_flag)
+        db.session.add(msg_info)
         db.session.commit()
     return 'success'
 
@@ -261,9 +266,9 @@ def add_scores():
 '''
 @intput:
 {
-    openid:""
-    nickname:""
-    head_img:""
+    openid:"",
+    nickname:"",
+    head_img:"",
     label:""
 }
 @output:
@@ -303,7 +308,7 @@ msglist:
 '''
 
 
-@msg.route('/getHotMsg/',methods=['post'])
+@msg.route('/getHotMsg/', methods=['post'])
 def get_hot_msg():
     receive = request.get_json()
     openid = receive['openid']
@@ -320,13 +325,23 @@ def get_hot_msg():
 '''
 
 
-@cache.momize(timeout=3600)
+#@cache.memoize(timeout=3600)
 def gethotmsg(indexf, indext):
-    msg = db.session.query(Msg).order_by(db.desc(Msg.overall_score)).offset(indexf).limit(int(indext) - int(indexf) + 1)
+    msg_info = db.session.query(MsgInfo).order_by(db.desc(MsgInfo.overall_score)).offset(indexf).limit(int(indext) - int(indexf) + 1)
     msglist = []
-    for i in msg:
+    for i in msg_info:
         i = i.get_dict()
-        i['content'] = f.filter(i['content'])
+        id = i['msg_id']
+        msg = db.session.query(Msg).filter_by(msg_id=id).first()
+        msg = msg.get_dict()
+        i['id'] = id
+        i['author_id'] = msg['author_id']
+        i['content'] = f.filter(msg['content'])
+        i['time'] = msg['time']
+        i['anonymous'] = msg['anonymous']
+        i['latitude'] = msg['latitude']
+        i['longitude'] = msg['longitude']
+
         i['nickname'] = db.session.query(User.nickname).filter_by(openid=i['author_id']).first().nickname
         i['head_img'] = db.session.query(User.head_img).filter_by(openid=i['author_id']).first().head_img
         i['comment_num'] = db.session.query(Comment).filter_by(msg_id=i['id']).count()

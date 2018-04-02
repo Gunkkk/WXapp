@@ -16,11 +16,39 @@ class Msg(db.Model, Father):
     id = db.Column(db.BigInteger, primary_key=True)
     author_id = db.Column(db.String(40), db.ForeignKey('user.openid'))
     content = db.Column(db.String(280))
-    score = db.Column(db.Integer)
+#    score = db.Column(db.Integer)
     time = db.Column(db.DateTime)
     anonymous = db.Column(db.Boolean)
     longitude = db.Column(db.Float)
     latitude = db.Column(db.Float)
+#    overall_score = db.Column(db.Float)
+#    hit_times = db.Column(db.BigInteger)
+
+
+class MsgInfo(db.Model, Father):
+    __tablename__ = "msg_dyn_info"
+    msg_id = db.Column(db.BigInteger, primary_key=True)
+#    author_id = db.Column(db.String(40), db.ForeignKey('user.openid'))
+#    content = db.Column(db.String(280))
+    score = db.Column(db.Integer)
+#    time = db.Column(db.DateTime)
+#    anonymous = db.Column(db.Boolean)
+#    longitude = db.Column(db.Float)
+#    latitude = db.Column(db.Float)
+    overall_score = db.Column(db.Float)
+    hit_times = db.Column(db.BigInteger)
+
+
+class MsgInfoLast(db.Model, Father):
+    __tablename__ = "msg_dyn_info_before"
+    msg_id = db.Column(db.BigInteger, primary_key=True)
+#   author_id = db.Column(db.String(40), db.ForeignKey('user.openid'))
+#   content = db.Column(db.String(280))
+    score = db.Column(db.Integer)
+#    time = db.Column(db.DateTime)
+#   anonymous = db.Column(db.Boolean)
+#    longitude = db.Column(db.Float)
+#    latitude = db.Column(db.Float)
     overall_score = db.Column(db.Float)
     hit_times = db.Column(db.BigInteger)
 

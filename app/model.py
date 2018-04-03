@@ -25,6 +25,7 @@ class Msg(db.Model, Father):
 #    hit_times = db.Column(db.BigInteger)
 
 
+# 需要触发器来进行初始化
 class MsgInfo(db.Model, Father):
     __tablename__ = "msg_dyn_info"
     msg_id = db.Column(db.BigInteger, primary_key=True)
@@ -59,6 +60,20 @@ class Comment(db.Model, Father):
     msg_id = db.Column(db.BigInteger, db.ForeignKey('msg.id'))
     author_id = db.Column(db.String(40))
     content = db.Column(db.String(280))
+    #target_id = db.Column(db.String(40))
+    time = db.Column(db.DateTime)
+    anonymous = db.Column(db.Boolean)
+    visible = db.Column(db.Boolean)
+    score = db.Column(db.Integer)
+
+
+class CommentSecond(db.Model, Father):
+    __tablename__ = 'comment_second'
+    id = db.Column(db.BigInteger, primary_key=True)
+    msg_id = db.Column(db.BigInteger, db.ForeignKey('msg.id'))
+    comment_id = db.Column(db.BigInteger, db.ForeignKey('comment.id'))
+    author_id = db.Column(db.String(40))
+    content = db.Column(db.String(280))
     target_id = db.Column(db.String(40))
     time = db.Column(db.DateTime)
     anonymous = db.Column(db.Boolean)
@@ -69,7 +84,7 @@ class User(db.Model, Father):
     __tablename__ = 'user'
     openid = db.Column(db.String(40), primary_key=True)
     nickname = db.Column(db.String(20))
-    head_img = db.Column(db.String(50))
+    head_img = db.Column(db.String)
     label = db.Column(db.String(50))
 
 
@@ -78,6 +93,12 @@ class Zan(db.Model,Father):
     id = db.Column(db.BigInteger, primary_key=True)
     msg_id = db.Column(db.BigInteger, db.ForeignKey('msg.id'))
     author_id = db.Column(db.String(40), db.ForeignKey('user.openid'))
-    status = db.Column(db.Boolean)  # 1√ 0×
+    status = db.Column(db.SmallInteger)
 
 
+class ZanComment(db.Model,Father):
+    __tablename__ = 'zan_comment'
+    id = db.Column(db.BigInteger, primary_key=True)
+    comment_id = db.Column(db.BigInteger, db.ForeignKey('comment.id'))
+    author_id = db.Column(db.String(40), db.ForeignKey('user.openid'))
+    status = db.Column(db.SmallInteger)

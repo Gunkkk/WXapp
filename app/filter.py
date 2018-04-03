@@ -1,7 +1,4 @@
 # -*- coding:utf-8 -*-
-from collections import defaultdict
-import re
-
 __author__ = 'observer'
 __date__ = '2018.03.05'
 

@@ -3,6 +3,9 @@ from app import db, cache, filter
 from app.model import Msg, Comment, User, Zan, MsgInfo, CommentSecond, ZanComment
 from flask import request, jsonify
 import requests
+import json
+import hashlib
+
 
 '''
 api:
@@ -29,6 +32,25 @@ f.parse('C:\\Users\\84074\\PycharmProjects\\WXapp\\app\\keywords')
 # f.parse('keywords')
 
 
+'''
+@input:
+openid_md5
+@output:
+true/false
+
+进行身份验证进行api访问拦截
+'''
+
+
+@cache.memoize(timeout=3600)
+def check_legal(openid_md5):
+    user = db.session.query(User).filter_by(openid=openid_md5).first()
+    if user==None:
+        return False
+    else:
+        return True
+
+
 @msg.route("/")
 def hello_world():
     return "hello world"
@@ -53,6 +75,8 @@ signal
 def add_msg():
     receive = request.get_json()
     openid = receive['openid']
+    if not check_legal(openid):
+        return 'failed'
     content = receive['content']
     datetime = receive['datetime']
     anonymous = receive['anonymous']
@@ -77,7 +101,7 @@ def add_msg():
 
 '''
 @input:
-{indexf:"",indext:""}
+{indexf:"",indext:"",openid:""}
 @output:
 {
     msglist:[
@@ -104,9 +128,12 @@ def add_msg():
 @msg.route("/getMsg/", methods=['post'])
 def get_msg():
     receive = request.get_json()
+    openid = receive['openid']
+    if not check_legal(openid):
+        return 'failed'
     indexf = receive['indexf']
     indext = receive['indext']
-    string = getmsg(int(indexf), int(indext))
+    string = getmsg(int(indexf), int(indext),openid)
     #print(string)
     return jsonify({'msglist': string})
 
@@ -117,22 +144,26 @@ def get_msg():
 
 
 #@cache.memoize(timeout=300)
-def getmsg(indexf, indext):
+def getmsg(indexf, indext,openid):
     msgs = db.session.query(Msg).order_by(db.desc(Msg.time)).offset(indexf).limit(int(indext) - int(indexf) + 1)
     msglist = []
     for i in msgs:
         i = i.get_dict()
         id = i['id']
         msg_info = db.session.query(MsgInfo).filter_by(msg_id=id).first()
-        i['score'] = msg_info.score
-        i['hit_times'] = msg_info.hit_times
-
+        if msg_info is not None:
+            i['score'] = msg_info.score
+            i['hit_times'] = msg_info.hit_times
+        else:
+            i['score'] = 0
+            i['hit_times'] = 0
+        i['time'] = i['time'].strftime("%Y-%m-%d %H:%M:%S")
         i['content'] = f.filter(i['content'])
         i['nickname'] = db.session.query(User.nickname).filter_by(openid=i['author_id']).first().nickname
         i['head_img'] = db.session.query(User.head_img).filter_by(openid=i['author_id']).first().head_img
         i['comment_num'] = db.session.query(Comment).filter_by(msg_id=i['id']).count()
-        zan_status = db.session.query(Zan.status).filter_by(msg_id=i['id'], author_id=i['author_id']).first()
-        if zan_status != None:
+        zan_status = db.session.query(Zan.status).filter_by(msg_id=i['id'], author_id=openid).first()
+        if zan_status is not None:
             zan_status = zan_status.status
 
         i['zan_status'] = zan_status
@@ -158,16 +189,19 @@ signal
 @msg.route("/addComment/", methods=['post'])
 def add_comment():
     receive = request.get_json()
+    openid = receive['openid']
+    if not check_legal(openid):
+        return 'failed'
     msgid = receive['msgid']
     #cache.delete_memoized(getcomments, int(msgid))
     # 删除缓存
     # 不将msgid转为int缓存无法删除
-    openid = receive['openid']
+
     content = receive['content']
     datetime = receive['datetime']
     anonymous = receive['anonymous']
     visible = receive['visible']
-    comment = Comment(msg_id=msgid, author_id=openid, content=content, time=datetime, anonymous=anonymous, visible=visible)
+    comment = Comment(msg_id=msgid, author_id=openid, content=content, time=datetime, anonymous=anonymous, visible=visible,score=0)
     db.session.add(comment)
     #   try:
     db.session.commit()
@@ -184,6 +218,7 @@ def add_comment():
     msgid:"",
     indexf:"",
     indext:"",
+    openid:""
 }
 @ouput:
 {
@@ -200,6 +235,7 @@ def add_comment():
         head_img:"",
         score:"",
         zan_status:0/1/2,
+        comments_num:"",
         comments:[
                     {
                         author_id:"",
@@ -222,11 +258,14 @@ def add_comment():
 @msg.route("/getComments/", methods=['post'])
 def get_comments():
     receive = request.get_json()
+    openid = receive['openid']
+    if not check_legal(openid):
+        return 'failed'
     msgid = receive['msgid']
     indexf = receive['indexf']
     indext = receive['indext']
      #comment_dict = [i.get_dict() for i in comments]
-    return jsonify({'commentlist': getcomments(int(msgid), int(indexf), int(indext))})
+    return jsonify({'commentlist': getcomments(int(msgid), int(indexf), int(indext),openid)})
 
 
 '''
@@ -240,7 +279,7 @@ comment_dict
 
 
 #@cache.memoize(timeout=3600)
-def getcomments(msgid, indexf, indext):
+def getcomments(msgid, indexf, indext,openid):
     comments = db.session.query(Comment).filter_by(msg_id=msgid).order_by(db.desc(Comment.time)).offset(indexf).limit(int(indext) - int(indexf) + 1)
     comment_dict = []
     for i in comments:
@@ -249,11 +288,13 @@ def getcomments(msgid, indexf, indext):
         i['snickname'] = db.session.query(User.nickname).filter_by(openid=i['author_id']).first().nickname
         i['comments'] = getcommentssec(i['id'])
         i['head_img'] = db.session.query(User.head_img).filter_by(openid=i['author_id']).first().head_img
-        zan_status = db.session.query(ZanComment.status).filter_by(comment_id=i['id'], author_id=i['author_id']).first()
-        if zan_status != None:
+        zan_status = db.session.query(ZanComment.status).filter_by(comment_id=i['id'], author_id=openid).first()
+        if zan_status is not None:
             zan_status = zan_status.status
 
         i['zan_status'] = zan_status
+        i['time'] = i['time'].strftime("%Y-%m-%d %H:%M:%S")
+        i['comments_num'] = db.session.query(CommentSecond).filter_by(msg_id=i['id']).count()
         comment_dict.append(i)
     return comment_dict
 
@@ -278,19 +319,21 @@ signal
 @msg.route("/addCommentSec/", methods=['post'])
 def add_comment_second():
     receive = request.get_json()
+    openid = receive['openid']
+    if not check_legal(openid):
+        return 'failed'
     commentid = receive['commentid']
     msgid = receive['msgid']
     cache.delete_memoized(getcommentssec, int(commentid))
     commentid = receive['commentid']
     # 删除缓存
     # 不将id转为int缓存无法删除
-    openid = receive['openid']
     targetid = receive['targetid']
     content = receive['content']
     datetime = receive['datetime']
     anonymous = receive['anonymous']
     visible = receive['visible']
-    commentsec = CommentSecond(msg_id=msgid, commentid=commentid, author_id=openid, content=content, target_id=targetid, time=datetime, anonymous=anonymous, visible=visible)
+    commentsec = CommentSecond(msg_id=msgid, comment_id=commentid, author_id=openid, content=content, target_id=targetid, time=datetime, anonymous=anonymous, visible=visible)
     db.session.add(commentsec)
     #   try:
     db.session.commit()
@@ -327,6 +370,7 @@ def getcommentssec(commentid):
     for i in comments:
         i = i.get_dict()
         i['content'] = f.filter(i['content'])
+        i['time'] = i['time'].strftime("%Y-%m-%d %H:%M:%S")
         i['snickname'] = db.session.query(User.nickname).filter_by(openid=i['author_id']).first().nickname
         i['onickname'] = db.session.query(User.nickname).filter_by(openid=i['target_id']).first().nickname
         comment_dict.append(i)
@@ -356,7 +400,7 @@ def getcommentssec(commentid):
         "like_flag": 2
         "score": 1
       }
-    ]
+    ],
     "like_doing_sec":
     [
       {
@@ -383,11 +427,13 @@ def add_scores():
     receive = request.get_json()
     string = receive['user_likes']
     openid = string['user_id']
+    if not check_legal(openid):
+        return 'failed'
     like_list = string['like_doing']
     like_list_sec = string['like_doing_sec']
     for i in like_list:
         msg_id = i['msg_id']
-        cache.delete_memoized(getcomments, int(msg_id))  # 删除缓存
+       # cache.delete_memoized(getcomments, int(msg_id))  # 删除缓存
         like_flag = i['like_flag']
         score = int(i['score'])
         zan = Zan.query.filter_by(msg_id=msg_id, author_id=openid).first()
@@ -397,7 +443,7 @@ def add_scores():
             zan.status = like_flag
         db.session.add(zan)
 
-        msg_info = MsgInfo.query.filter_by(id=msg_id).first()
+        msg_info = MsgInfo.query.filter_by(msg_id=msg_id).first()
         if msg_info==None:
             msg_info = MsgInfo(msg_id=msg_id, score=score)
         else:
@@ -442,7 +488,7 @@ def add_scores():
             "label":""
         }
     }
-}
+}/false
 说明：
     用户登录操作
 '''
@@ -457,22 +503,31 @@ def get_user_info():
     code = receive['code']
     url = 'https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code' % \
           (appid, secret, code)
+
+    ## {"session_key":"S1V0xJ88wooatu6I\/Hao4w==","openid":"omyxV4wFovxLS2CtuljRIIKiIcjU"}
     r = requests.get(url)
-    openid = r.text
+    returns = json.dumps(r.text)
+
+    if not returns.has_keys('openid'):
+        return 'false'
+    session_key = returns['session_key']
+    openid = returns['openid']
     result = {}
 
     user = User.query.filter_by(openid=openid).first()
-    if user==None:
+    if user is None:
         user = User(openid=openid)
         db.session.add(user)
         db.session.commit()
+        user.openid = hashlib.md5(openid.encode(encoding='UTF-8')).hexdigest()  # MD5加密
     else:
         result['user_type'] = 'old'
         user = user.get_dict()
+
     result['user_info'] = user
     # raw_user = User.query.filer_by(openid=openid).first()
     # if raw_user != None:
-
+    result['session_key'] = session_key
     return jsonify({"result": result})
 
 '''
@@ -480,7 +535,7 @@ def get_user_info():
     {
             "openid":"",
             "nickname":"",
-            "head_img:"",
+            "head_img":"",
             "label":""
     }
 @output
@@ -494,6 +549,8 @@ signal
 def set_user_info():
     receive = request.get_json()
     openid = receive['openid']
+    if not check_legal(openid):
+        return 'failed'
     nickname = receive['nickname']
     head_img = receive['head_img']
     label = receive['label']
@@ -525,9 +582,11 @@ msglist:
 def get_hot_msg():
     receive = request.get_json()
     openid = receive['openid']
+    if not check_legal(openid):
+        return 'failed'
     indexf = receive['indexf']
     indext = receive['indext']
-    return jsonify({'msglist': gethotmsg(indexf, indext)})
+    return jsonify({'msglist': gethotmsg(indexf, indext,openid)})
 
 
 '''
@@ -539,7 +598,7 @@ def get_hot_msg():
 
 
 #@cache.memoize(timeout=3600)
-def gethotmsg(indexf, indext):
+def gethotmsg(indexf, indext,openid):
     msg_info = db.session.query(MsgInfo).order_by(db.desc(MsgInfo.overall_score)).offset(indexf).limit(int(indext) - int(indexf) + 1)
     msglist = []
     for i in msg_info:
@@ -550,7 +609,7 @@ def gethotmsg(indexf, indext):
         i['id'] = id
         i['author_id'] = msg['author_id']
         i['content'] = f.filter(msg['content'])
-        i['time'] = msg['time']
+        i['time'] = msg['time'].strftime("%Y-%m-%d %H:%M:%S")
         i['anonymous'] = msg['anonymous']
         i['latitude'] = msg['latitude']
         i['longitude'] = msg['longitude']
@@ -558,7 +617,7 @@ def gethotmsg(indexf, indext):
         i['nickname'] = db.session.query(User.nickname).filter_by(openid=i['author_id']).first().nickname
         i['head_img'] = db.session.query(User.head_img).filter_by(openid=i['author_id']).first().head_img
         i['comment_num'] = db.session.query(Comment).filter_by(msg_id=i['id']).count()
-        zan_status = db.session.query(Zan.status).filter_by(msg_id=i['id'], author_id=i['author_id']).first()
+        zan_status = db.session.query(Zan.status).filter_by(msg_id=i['id'], author_id=openid).first()
         if zan_status != None:
             zan_status = zan_status.status
 
@@ -585,6 +644,8 @@ msglist:
 def get_recom():
     receive = request.get_json()
     openid = receive['openid']
+    if not check_legal(openid):
+        return 'failed'
     indexf = receive['indexf']
     indext = receive['indext']
     msglist = []

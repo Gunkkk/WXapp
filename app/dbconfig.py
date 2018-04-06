@@ -9,11 +9,12 @@ SQLALCHEMY_MAX_OVERFLOW = 20
 JOBS = [
     {
         'id': 'job1',
-        'func': 'schedule:overallCalculate',
+        'func': 'app.schedule:overallCalculate',
         'args': '',
         'trigger': 'interval',
         'seconds': 10
     }
 ]
-
 SCHEDULER_API_ENABLED = True
+
+

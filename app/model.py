@@ -84,7 +84,7 @@ class User(db.Model, Father):
     __tablename__ = 'user'
     openid = db.Column(db.String(40), primary_key=True)
     nickname = db.Column(db.String(20))
-    head_img = db.Column(db.String)
+    head_img = db.Column(db.String(100))
     label = db.Column(db.String(50))
 
 

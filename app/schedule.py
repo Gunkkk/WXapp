@@ -3,4 +3,4 @@ from app.model import Msg, Comment, User, Zan, MsgInfo, CommentSecond, ZanCommen
 
 
 def overallCalculate():
-    print('xxxx')
+    print ()

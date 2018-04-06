@@ -21,6 +21,7 @@ class Msg(db.Model, Father):
     anonymous = db.Column(db.Boolean)
     longitude = db.Column(db.Float)
     latitude = db.Column(db.Float)
+    picture = db.Column(db.String(50))
 #    overall_score = db.Column(db.Float)
 #    hit_times = db.Column(db.BigInteger)
 
@@ -38,6 +39,7 @@ class MsgInfo(db.Model, Father):
 #    latitude = db.Column(db.Float)
     overall_score = db.Column(db.Float)
     hit_times = db.Column(db.BigInteger)
+    comment_author_num = db.Column(db.Integer)
 
 
 class MsgInfoLast(db.Model, Father):
@@ -52,6 +54,7 @@ class MsgInfoLast(db.Model, Father):
 #    latitude = db.Column(db.Float)
     overall_score = db.Column(db.Float)
     hit_times = db.Column(db.BigInteger)
+    comment_author_num = db.Column(db.Integer)
 
 
 class Comment(db.Model, Father):

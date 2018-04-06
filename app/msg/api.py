@@ -1,12 +1,12 @@
 from .import msg
-from app import db, cache, filter
+from app import db, cache, filter, redis_connection
 from app.model import Msg, Comment, User, Zan, MsgInfo, CommentSecond, ZanComment
 from flask import request, jsonify
 import requests
 import json
 import hashlib
-
-
+from app.msg.util import *
+import asyncio
 '''
 api:
 1	addMsg
@@ -51,6 +51,9 @@ def check_legal(openid_md5):
         return False
     else:
         return True
+
+
+
 
 
 @msg.route("/")
@@ -195,6 +198,8 @@ def add_comment():
     if not check_legal(openid):
         return 'failed'
     msgid = receive['msgid']
+
+    comment_author_num_operation(msgid, openid)  # 最好使用异步执行
     #cache.delete_memoized(getcomments, int(msgid))
     # 删除缓存
     # 不将msgid转为int缓存无法删除
@@ -264,6 +269,7 @@ def get_comments():
     if not check_legal(openid):
         return 'failed'
     msgid = receive['msgid']
+    get_hit(msgid)  # 使用异步执行
     indexf = receive['indexf']
     indext = receive['indext']
      #comment_dict = [i.get_dict() for i in comments]
@@ -446,7 +452,7 @@ def add_scores():
         db.session.add(zan)
 
         msg_info = MsgInfo.query.filter_by(msg_id=msg_id).first()
-        if msg_info==None:
+        if msg_info is None:
             msg_info = MsgInfo(msg_id=msg_id, score=score)
         else:
             msg_info.score = msg_info.score + score
@@ -458,7 +464,7 @@ def add_scores():
         like_flag = i['like_flag']
         score = int(i['score'])
         zan_comment = ZanComment.query.filter_by(comment_id=comment_id, author_id=openid).first()
-        if zan_comment==None:
+        if zan_comment is None:
             zan_comment=ZanComment(comment_id=comment_id, author_id=openid, status=like_flag)
         else:
             zan_comment.status = like_flag

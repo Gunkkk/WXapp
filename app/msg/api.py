@@ -28,7 +28,9 @@ api:
 keywords只能支持绝对路径???
 '''
 f = filter.DFAFilter()
-f.parse('C:\\Users\\84074\\PycharmProjects\\WXapp\\app\\keywords')
+f.parse('C:\\Users\\84074\\PycharmProjects\\WXapp\\app\\keywords') # 采用绝对地址
+# f.parse('/root/venvtest/app/keywords')
+
 # f.parse('keywords')
 
 

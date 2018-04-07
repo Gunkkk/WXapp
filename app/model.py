@@ -21,7 +21,7 @@ class Msg(db.Model, Father):
     anonymous = db.Column(db.Boolean)
     longitude = db.Column(db.Float)
     latitude = db.Column(db.Float)
-    picture = db.Column(db.String(50))
+    picture = db.Column(db.String(200))
 #    overall_score = db.Column(db.Float)
 #    hit_times = db.Column(db.BigInteger)
 
@@ -87,7 +87,7 @@ class User(db.Model, Father):
     __tablename__ = 'user'
     openid = db.Column(db.String(40), primary_key=True)
     nickname = db.Column(db.String(20))
-    head_img = db.Column(db.String(100))
+    head_img = db.Column(db.String(200))
     label = db.Column(db.String(50))
 
 

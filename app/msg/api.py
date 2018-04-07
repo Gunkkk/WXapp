@@ -5,8 +5,7 @@ from flask import request, jsonify
 import requests
 import json
 import hashlib
-from app.msg.util import *
-import asyncio
+from app.msg.task import *
 '''
 api:
 1	addMsg
@@ -28,8 +27,8 @@ api:
 keywords只能支持绝对路径???
 '''
 f = filter.DFAFilter()
-f.parse('C:\\Users\\84074\\PycharmProjects\\WXapp\\app\\keywords') # 采用绝对地址
-# f.parse('/root/venvtest/app/keywords')
+#f.parse('C:\\Users\\84074\\PycharmProjects\\WXapp\\app\\keywords') # 采用绝对地址
+f.parse('/root/venvtest/app/keywords')
 
 # f.parse('keywords')
 
@@ -199,7 +198,7 @@ def add_comment():
         return 'failed'
     msgid = receive['msgid']
 
-    comment_author_num_operation(msgid, openid)  # 最好使用异步执行
+
     #cache.delete_memoized(getcomments, int(msgid))
     # 删除缓存
     # 不将msgid转为int缓存无法删除
@@ -212,6 +211,7 @@ def add_comment():
     db.session.add(comment)
     #   try:
     db.session.commit()
+    comment_author_num_operation.delay(msgid, openid)  # 最好使用异步执行
     # except BaseException as e:
     #     return 'failed'
     #     print(e)
@@ -225,7 +225,8 @@ def add_comment():
     msgid:"",
     indexf:"",
     indext:"",
-    openid:""
+    openid:"",
+    order:"time/score"
 }
 @ouput:
 {
@@ -269,16 +270,17 @@ def get_comments():
     if not check_legal(openid):
         return 'failed'
     msgid = receive['msgid']
-    get_hit(msgid)  # 使用异步执行
+    get_hit.delay(msgid)  # 使用异步执行
     indexf = receive['indexf']
     indext = receive['indext']
+    order = receive['order']
      #comment_dict = [i.get_dict() for i in comments]
-    return jsonify({'commentlist': getcomments(int(msgid), int(indexf), int(indext),openid)})
+    return jsonify({'commentlist': getcomments(int(msgid), int(indexf), int(indext), openid, order)})
 
 
 '''
 @input:
-msgid
+msgid,indexf,indext,openid,order
 @output:
 comment_dict
 
@@ -287,8 +289,11 @@ comment_dict
 
 
 #@cache.memoize(timeout=3600)
-def getcomments(msgid, indexf, indext,openid):
-    comments = db.session.query(Comment).filter_by(msg_id=msgid).order_by(db.desc(Comment.time)).offset(indexf).limit(int(indext) - int(indexf) + 1)
+def getcomments(msgid, indexf, indext,openid,order):
+    if order == 'time':
+        comments = db.session.query(Comment).filter_by(msg_id=msgid).order_by(db.desc(Comment.time)).offset(indexf).limit(int(indext) - int(indexf) + 1)
+    else:
+        comments = db.session.query(Comment).filter_by(msg_id=msgid).order_by(db.desc(Comment.score)).offset(indexf).limit(int(indext) - int(indexf) + 1)
     comment_dict = []
     for i in comments:
         i = i.get_dict()
@@ -453,7 +458,7 @@ def add_scores():
 
         msg_info = MsgInfo.query.filter_by(msg_id=msg_id).first()
         if msg_info is None:
-            msg_info = MsgInfo(msg_id=msg_id, score=score)
+            msg_info = MsgInfo(msg_id=msg_id, score=score ,overall_score=0, comment_author_num=0, hit_times=0)
         else:
             msg_info.score = msg_info.score + score
         db.session.add(msg_info)
@@ -488,7 +493,7 @@ def add_scores():
     "result":
     {
         "user_type":"new"/"old",
-        "user":
+        "user_info":
         {
             "openid":"",
             "nickname":"",
@@ -514,23 +519,24 @@ def get_user_info():
 
     ## {"session_key":"S1V0xJ88wooatu6I\/Hao4w==","openid":"omyxV4wFovxLS2CtuljRIIKiIcjU"}
     r = requests.get(url)
-    returns = json.dumps(r.text)
+    returns = json.loads(r.text)
 
-    if not returns.has_keys('openid'):
+    if 'openid' not in returns.keys:
         return 'false'
     session_key = returns['session_key']
     openid = returns['openid']
-    result = {}
-
+    result = dict()
+    openid = hashlib.md5(openid.encode(encoding='UTF-8')).hexdigest() # MD5加密
     user = User.query.filter_by(openid=openid).first()
     if user is None:
         user = User(openid=openid)
         db.session.add(user)
         db.session.commit()
-        user.openid = hashlib.md5(openid.encode(encoding='UTF-8')).hexdigest()  # MD5加密
+        user.openid = openid
+        result['user_type'] = 'new'
     else:
         result['user_type'] = 'old'
-        user = user.get_dict()
+    user = user.get_dict()
 
     result['user_info'] = user
     # raw_user = User.query.filer_by(openid=openid).first()

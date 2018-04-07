@@ -2,7 +2,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_cache import Cache
 import redis
-
+from celery import Celery
 
 pool = redis.ConnectionPool(host='127.0.0.1', port='6379', db=1)
 redis_connection = redis.Redis(connection_pool=pool)
@@ -17,6 +17,8 @@ cache = Cache(config={
 app = Flask(__name__)
 app.config.from_pyfile('dbconfig.py')
 
+celery = Celery('tasks', broker='redis://localhost:6379/2', backend='redis://localhost:6379/2')
+celery.conf.update(app.config)
 
 db = SQLAlchemy(app)
 from app import model

@@ -27,8 +27,8 @@ api:
 keywords只能支持绝对路径???
 '''
 f = filter.DFAFilter()
-#f.parse('C:\\Users\\84074\\PycharmProjects\\WXapp\\app\\keywords') # 采用绝对地址
-f.parse('/root/venvtest/app/keywords')
+f.parse('C:\\Users\\84074\\PycharmProjects\\WXapp\\app\\keywords') # 采用绝对地址
+#f.parse('/root/venvtest/app/keywords')
 
 # f.parse('keywords')
 
@@ -46,13 +46,10 @@ true/false
 @cache.memoize(timeout=3600)
 def check_legal(openid_md5):
     user = db.session.query(User).filter_by(openid=openid_md5).first()
-    if user==None:
+    if user is None:
         return False
     else:
         return True
-
-
-
 
 
 @msg.route("/")
@@ -79,7 +76,7 @@ signal
 def add_msg():
     receive = request.get_json()
     openid = receive['openid']
-    if not check_legal(openid):
+    if openid is None or not check_legal(openid):
         return 'failed'
     content = receive['content']
     datetime = receive['datetime']
@@ -110,6 +107,7 @@ def add_msg():
 {
     msglist:[
             {
+             id:"",
              author_id:"",
              nickname:"",
              head_img:"",
@@ -121,7 +119,8 @@ def add_msg():
              latitude:"",
              comment_num:"",
              zan_status:0/1/2,
-             hit_times:""
+             hit_times:"",
+             picture:""
              },
              {},…
              ]
@@ -133,11 +132,11 @@ def add_msg():
 def get_msg():
     receive = request.get_json()
     openid = receive['openid']
-    if not check_legal(openid):
+    if openid is None or not check_legal(openid):
         return 'failed'
     indexf = receive['indexf']
     indext = receive['indext']
-    string = getmsg(int(indexf), int(indext),openid)
+    string = getmsg(int(indexf), int(indext), openid)
     #print(string)
     return jsonify({'msglist': string})
 
@@ -194,7 +193,7 @@ signal
 def add_comment():
     receive = request.get_json()
     openid = receive['openid']
-    if not check_legal(openid):
+    if openid is None or not check_legal(openid):
         return 'failed'
     msgid = receive['msgid']
 
@@ -267,7 +266,9 @@ def add_comment():
 def get_comments():
     receive = request.get_json()
     openid = receive['openid']
-    if not check_legal(openid):
+    if openid is None:
+        return 'failed'
+    if openid is None or not check_legal(openid):
         return 'failed'
     msgid = receive['msgid']
     get_hit.delay(msgid)  # 使用异步执行
@@ -333,7 +334,7 @@ signal
 def add_comment_second():
     receive = request.get_json()
     openid = receive['openid']
-    if not check_legal(openid):
+    if openid is None or not check_legal(openid):
         return 'failed'
     commentid = receive['commentid']
     msgid = receive['msgid']
@@ -440,7 +441,7 @@ def add_scores():
     receive = request.get_json()
     string = receive['user_likes']
     openid = string['user_id']
-    if not check_legal(openid):
+    if openid is None or not check_legal(openid):
         return 'failed'
     like_list = string['like_doing']
     like_list_sec = string['like_doing_sec']
@@ -521,7 +522,7 @@ def get_user_info():
     r = requests.get(url)
     returns = json.loads(r.text)
 
-    if 'openid' not in returns.keys:
+    if 'openid' not in returns.keys():
         return 'false'
     session_key = returns['session_key']
     openid = returns['openid']
@@ -563,7 +564,7 @@ signal
 def set_user_info():
     receive = request.get_json()
     openid = receive['openid']
-    if not check_legal(openid):
+    if openid is None or not check_legal(openid):
         return 'failed'
     nickname = receive['nickname']
     head_img = receive['head_img']
@@ -596,7 +597,7 @@ msglist:
 def get_hot_msg():
     receive = request.get_json()
     openid = receive['openid']
-    if not check_legal(openid):
+    if openid is None or not check_legal(openid):
         return 'failed'
     indexf = receive['indexf']
     indext = receive['indext']
@@ -604,35 +605,56 @@ def get_hot_msg():
 
 
 '''
-    可以根据index来进行缓存
-    不需要手动删除缓存，随着时间自己失效即可
-    因为数据库设置time events 计算综合得分
-    根据距计算时间的值、score、评论数、点击量四个变量来建立模型进行热门推荐的得分计算
+获取实时热榜  
+    {
+    msglist:[
+            {
+             id:"",
+             author_id:"",
+             nickname:"",
+             head_img:"",
+             content:"",
+             time:"",
+             score:"",
+             anonymous:0/1,
+             longitude:"",
+             latitude:"",
+             comment_num:"",
+             zan_status:0/1/2,
+             hit_times:"",
+             picture:"",
+             overall_scores:"",
+             comment_author_num:""
+             },
+             {},…
+             ]
+}
 '''
 
 
 #@cache.memoize(timeout=3600)
-def gethotmsg(indexf, indext,openid):
+def gethotmsg(indexf, indext, openid):
     msg_info = db.session.query(MsgInfo).order_by(db.desc(MsgInfo.overall_score)).offset(indexf).limit(int(indext) - int(indexf) + 1)
-    msglist = []
+    msglist = list()
     for i in msg_info:
         i = i.get_dict()
-        id = i['msg_id']
-        msg = db.session.query(Msg).filter_by(msg_id=id).first()
+        msg_id = i['msg_id']
+        msg = db.session.query(Msg).filter_by(id=msg_id).first()
         msg = msg.get_dict()
-        i['id'] = id
+        i['id'] = msg_id
         i['author_id'] = msg['author_id']
         i['content'] = f.filter(msg['content'])
         i['time'] = msg['time'].strftime("%Y-%m-%d %H:%M:%S")
         i['anonymous'] = msg['anonymous']
         i['latitude'] = msg['latitude']
         i['longitude'] = msg['longitude']
-
+        i['picture'] = msg['picture']
         i['nickname'] = db.session.query(User.nickname).filter_by(openid=i['author_id']).first().nickname
         i['head_img'] = db.session.query(User.head_img).filter_by(openid=i['author_id']).first().head_img
         i['comment_num'] = db.session.query(Comment).filter_by(msg_id=i['id']).count()
+
         zan_status = db.session.query(Zan.status).filter_by(msg_id=i['id'], author_id=openid).first()
-        if zan_status != None:
+        if zan_status is not None:
             zan_status = zan_status.status
 
         i['zan_status'] = zan_status
@@ -658,9 +680,31 @@ msglist:
 def get_recom():
     receive = request.get_json()
     openid = receive['openid']
-    if not check_legal(openid):
+    if openid is None or not check_legal(openid):
         return 'failed'
     indexf = receive['indexf']
     indext = receive['indext']
     msglist = []
     return jsonify({'msglist':msglist})
+
+
+
+'''
+@input:
+{
+    openid:"",
+}
+@output:
+{
+    reply:
+    {
+    
+    }
+
+}
+'''
+
+
+@msg.route('/getReply/',methods=['post'])
+def get_reply():
+    receive = request.get_json()

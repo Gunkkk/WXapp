@@ -15,7 +15,7 @@ JOBS = [
         'func': 'app.schedule:overall_calculate',
         'args': '',
         'trigger': 'interval',
-        'seconds': 10
+        'seconds': 600
     }
 ]
 SCHEDULER_API_ENABLED = True

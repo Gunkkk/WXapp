@@ -29,7 +29,7 @@ class Msg(db.Model, Father):
 # 需要触发器来进行初始化
 class MsgInfo(db.Model, Father):
     __tablename__ = "msg_dyn_info"
-    msg_id = db.Column(db.BigInteger, primary_key=True)
+    msg_id = db.Column(db.BigInteger, db.ForeignKey('msg.id'), primary_key=True)
 #    author_id = db.Column(db.String(40), db.ForeignKey('user.openid'))
 #    content = db.Column(db.String(280))
     score = db.Column(db.Integer)
@@ -40,11 +40,11 @@ class MsgInfo(db.Model, Father):
     overall_score = db.Column(db.Float)
     hit_times = db.Column(db.BigInteger)
     comment_author_num = db.Column(db.Integer)
-
+    # last_active_time = db.Column(db.DateTime)
 
 class MsgInfoLast(db.Model, Father):
     __tablename__ = "msg_dyn_info_before"
-    msg_id = db.Column(db.BigInteger, primary_key=True)
+    msg_id = db.Column(db.BigInteger, db.ForeignKey('msg.id'), primary_key=True)
 #   author_id = db.Column(db.String(40), db.ForeignKey('user.openid'))
 #   content = db.Column(db.String(280))
     score = db.Column(db.Integer)
@@ -55,7 +55,7 @@ class MsgInfoLast(db.Model, Father):
     overall_score = db.Column(db.Float)
     hit_times = db.Column(db.BigInteger)
     comment_author_num = db.Column(db.Integer)
-
+    # last_active_time = db.Column(db.DateTime)
 
 class Comment(db.Model, Father):
     __tablename__ = 'comment'

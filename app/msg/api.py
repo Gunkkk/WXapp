@@ -379,7 +379,7 @@ comment_dict
 
 @cache.memoize(timeout=3600)
 def getcommentssec(commentid):
-    comments = db.session.query(CommentSecond).filter_by(comment_id=commentid).order_by(db.desc(CommentSecond.time))
+    comments = db.session.query(CommentSecond).filter_by(comment_id=commentid).order_by(db.asc(CommentSecond.time))
     comment_dict = []
     for i in comments:
         i = i.get_dict()

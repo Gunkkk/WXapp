@@ -42,6 +42,7 @@ class MsgInfo(db.Model, Father):
     comment_author_num = db.Column(db.Integer)
     # last_active_time = db.Column(db.DateTime)
 
+
 class MsgInfoLast(db.Model, Father):
     __tablename__ = "msg_dyn_info_before"
     msg_id = db.Column(db.BigInteger, db.ForeignKey('msg.id'), primary_key=True)
@@ -56,6 +57,7 @@ class MsgInfoLast(db.Model, Father):
     hit_times = db.Column(db.BigInteger)
     comment_author_num = db.Column(db.Integer)
     # last_active_time = db.Column(db.DateTime)
+
 
 class Comment(db.Model, Father):
     __tablename__ = 'comment'
@@ -89,9 +91,10 @@ class User(db.Model, Father):
     nickname = db.Column(db.String(20))
     head_img = db.Column(db.String(200))
     label = db.Column(db.String(50))
+    reply_num = db.Column(db.Integer)
 
 
-class Zan(db.Model,Father):
+class Zan(db.Model, Father):
     __tablename__ = 'zan'
     id = db.Column(db.BigInteger, primary_key=True)
     msg_id = db.Column(db.BigInteger, db.ForeignKey('msg.id'))
@@ -99,9 +102,18 @@ class Zan(db.Model,Father):
     status = db.Column(db.SmallInteger)
 
 
-class ZanComment(db.Model,Father):
+class ZanComment(db.Model, Father):
     __tablename__ = 'zan_comment'
     id = db.Column(db.BigInteger, primary_key=True)
     comment_id = db.Column(db.BigInteger, db.ForeignKey('comment.id'))
     author_id = db.Column(db.String(40), db.ForeignKey('user.openid'))
     status = db.Column(db.SmallInteger)
+
+
+class Reply(db.Model, Father):
+    __tablename__ = 'reply'
+    id = db.Column(db.BigInteger, primary_key=True)
+    msg_id = db.Column(db.BigInteger, db.ForeignKey('msg.id'))
+    target_id = db.Column(db.String(40), db.ForeignKey('user.openid'))
+    comment_id = db.Column(db.BigInteger, db.ForeignKey('comment.id'))
+    sec_comment_id = db.Column(db.BigInteger, db.ForeignKey('comment_second.id'))

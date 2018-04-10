@@ -2,7 +2,7 @@ from datetime import timedelta
 from celery.schedules import crontab
 
 
-SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:h124365@localhost:3306/wxapp?charset=utf8'
+SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:h124365@localhost:3306/wxapp?charset=utf8mb4'
 SQLALCHEMY_TRACK_MODIFICATIONS = True
 
 SQLALCHEMY_POOL_SIZE = 20

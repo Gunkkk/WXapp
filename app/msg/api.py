@@ -1,6 +1,6 @@
 from .import msg
 from app import db, cache, filter, redis_connection
-from app.model import Msg, Comment, User, Zan, MsgInfo, CommentSecond, ZanComment
+from app.model import Msg, Comment, User, Zan, MsgInfo, CommentSecond, ZanComment, Reply
 from flask import request, jsonify
 import requests
 import json
@@ -14,11 +14,14 @@ api:
 4	addScores
 5	getComments
 6	getMsg
-7	
+7	getMsgByIndex
 8	getUserInfo
 9	getHotMsg
 10	getRecom
 11	setUserInfo
+12  getReply
+13  getReplies
+14  replyNumMinus
 '''
 
 
@@ -177,6 +180,52 @@ def getmsg(indexf, indext,openid):
 '''
 @input:
 {
+    openid:"",
+    msgid:""
+}
+@output:
+ {
+        signal:'not found'/'success',
+        msg:{
+             id:"",
+             author_id:"",
+             nickname:"",
+             head_img:"",
+             content:"",
+             time:"",
+             score:"",
+             anonymous:0/1,
+             longitude:"",
+             latitude:"",
+             comment_num:"",
+             zan_status:0/1/2,
+             hit_times:"",
+             picture:""
+            }
+}
+根据msgid来获取指定的msg 进行消息回复提示的定位显示
+
+'''
+
+
+@msg.route('/getMsgByIndex/',methods=['post'])
+def get_msg_by_index():
+    receive = request.get_json()
+    openid = receive['openid']
+    if openid is None or not check_legal(openid):
+        return 'failed'
+    msg_id = receive['msgid']
+    msg = Msg.query.filter_by(id=msg_id).first()
+    if msg is None:
+        return jsonify({'signal': 'not found'})
+    else:
+        msg = msg.get_dict()
+        return jsonify({'signal': 'success', 'msg':msg})
+
+
+'''
+@input:
+{
     msgid:"",
     openid:"",
     content:"",
@@ -210,7 +259,8 @@ def add_comment():
     db.session.add(comment)
     #   try:
     db.session.commit()
-    comment_author_num_operation.delay(msgid, openid)  # 最好使用异步执行
+    comment_author_num_operation.delay(msgid, openid)  # 评论人数
+    add_msg_reply.delay(msgid, openid)  # 获取回复
     # except BaseException as e:
     #     return 'failed'
     #     print(e)
@@ -351,6 +401,7 @@ def add_comment_second():
     db.session.add(commentsec)
     #   try:
     db.session.commit()
+    add_comment_reply.delay(commentid, openid)  # 获取回复状态
     # except BaseException as e:
     #     return 'failed'
     #     print(e)
@@ -488,6 +539,8 @@ def add_scores():
 @intput:
 {
     code:"",
+    nickname:"",
+    head_img:""
 }
 @output:
 {
@@ -499,7 +552,8 @@ def add_scores():
             "openid":"",
             "nickname":"",
             "head_img:"",
-            "label":""
+            "label":"",
+            "reply_num":""
         }
     }
 }/false
@@ -526,11 +580,13 @@ def get_user_info():
         return 'false'
     session_key = returns['session_key']
     openid = returns['openid']
+    nickname = receive['nickname'].encode('utf-8')
+    head_img = receive['head_img']
     result = dict()
     openid = hashlib.md5(openid.encode(encoding='UTF-8')).hexdigest() # MD5加密
     user = User.query.filter_by(openid=openid).first()
     if user is None:
-        user = User(openid=openid)
+        user = User(openid=openid, nickname=nickname, head_img=head_img)
         db.session.add(user)
         db.session.commit()
         user.openid = openid
@@ -551,7 +607,8 @@ def get_user_info():
             "openid":"",
             "nickname":"",
             "head_img":"",
-            "label":""
+            "label":"",
+            "reply_num":
     }
 @output
 signal
@@ -566,13 +623,15 @@ def set_user_info():
     openid = receive['openid']
     if openid is None or not check_legal(openid):
         return 'failed'
-    nickname = receive['nickname']
+    nickname = receive['nickname'].encode('utf-8')
     head_img = receive['head_img']
     label = receive['label']
+    reply_num = receive['reply_num']
     user = User.query.filter_by(openid=openid).first()
     user.nickname = nickname
     user.head_img = head_img
     user.label = label
+    user.reply_num = reply_num
     db.session.add(user)
     db.session.commit()
     return 'success'
@@ -692,19 +751,112 @@ def get_recom():
 '''
 @input:
 {
-    openid:"",
+    openid:""
 }
 @output:
 {
-    reply:
-    {
-    
-    }
+  reply:
+        {
+        msg_id:"",
+        comment_id:"",
+        },
+  reply_sec:
+        {
+        msg_id:"",
+        comment_id:"",
+        sec_comment_id:""
+        }
+    ]
+}
 
+ value = msg_id+'_'+comment_id+'_'+sec_comment_id
+ 将实时的
+'''
+
+
+@msg.route('/getReply/', methods=['post'])
+def get_reply():
+    receive = request.get_json()
+    openid = receive['openid']
+    if openid is None or not check_legal(openid):
+        return 'failed'
+    reply_sec = dict()
+    reply = dict()
+    value = redis_connection.get(str(openid))
+    if value is not None:
+        values = value.split('_')
+        reply['msg_id'] = values[0]
+        reply['comment_id'] = values[1]
+
+    value_sec = redis_connection.get(str(openid))
+    if value_sec is not None:
+        values_secs = value_sec.split('_')
+        reply_sec['msg_id'] = values_secs[0]
+        reply_sec['comment_id'] = values_secs[1]
+        reply_sec['sec_comment_id'] = values_secs[1]
+    if len(reply) == 0 and len(reply_sec) == 0:
+        return 'null'
+    return jsonify({'reply': reply, 'reply_sec': reply_sec})
+
+
+'''
+@input:
+{
+    openid:""
+}
+@output:
+{
+    size:"",
+    replies:
+    [
+        reply:
+        {
+        msg_id:"",
+        comment_id:"",
+        sec_comment_id:""
+        }
+    ]
+    
 }
 '''
 
 
-@msg.route('/getReply/',methods=['post'])
-def get_reply():
+@msg.route('/getReplies/', methods=['post'])
+def get_replies():
     receive = request.get_json()
+    openid = receive['openid']
+    if openid is None or not check_legal(openid):
+        return 'failed'
+    replies = db.session.query(Reply).filter_by(target_id=openid).order_by(db.desc(Reply.id)).all()
+    size = replies.size()
+    temp = list()
+    for i in replies:
+        i = i.get_dict()
+    temp.append(i)
+    return jsonify({'size': size, 'replies': temp})
+
+
+'''
+@input:
+{
+    openid:""
+}
+@output:
+signal
+回复信息数目减一
+'''
+
+
+@msg.route('/replyNumMinus/',methods=['post'])
+def reply_num_minus():
+    receive = request.get_json()
+    openid = receive['openid']
+    if openid is None or not check_legal(openid):
+        return 'failed'
+    user = User.query.filter_by(openid=openid).first()
+    if user.reply_num < 1:
+        return 'failed'
+    user.reply_num = user.reply_num - 1
+    db.session.add(user)
+    db.session.commit()
+    return 'success'

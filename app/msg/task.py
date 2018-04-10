@@ -1,5 +1,5 @@
 from app import redis_connection, db, celery
-from app.model import MsgInfo, Comment, CommentSecond, MsgInfoLast, Msg
+from app.model import MsgInfo, Comment, CommentSecond, MsgInfoLast, Msg, Reply, User
 import datetime
 import math
 HIT_TIME_PER = 1
@@ -105,3 +105,68 @@ def overall_score_calculate(msg_info):
     result.overall_score = value
     db.session.add(result)
     db.session.commit()
+
+
+'''
+消息回复提示
+@input 
+msg_id, open_id
+
+'''
+
+
+@celery.task
+def add_msg_reply(msg_id, open_id):
+    msg = Msg.query.filter_by(id=msg_id).first()
+    if msg is None:
+        return
+    else:
+        target_id = msg.author_id
+    comment = db.session.query(Comment).filter_by(msg_id=msg_id, author_id=open_id).order_by(db.desc(Comment.time))\
+        .first()  # 可靠吗？
+    if comment is None:
+        return
+    else:
+        comment_id = comment.id
+
+    reply = Reply(msg_id=msg_id, target_id=target_id, comment_id=comment_id)
+    user = User.query.filter_by(openid=open_id).first()
+    user.reply_num = user.reply_num + 1
+
+    db.session.add(user)
+    db.session.add(reply)
+    db.session.commit()
+    value = msg_id+'_'+comment_id
+    redis_connection.set(str(target_id), value, ex=300)  # 过期时间为ex 秒
+
+
+'''
+评论回复提示
+@input
+comment_id, open_id
+'''
+
+
+@celery.task
+def add_comment_reply(comment_id, open_id):
+    comment = Comment.query.filter_by(id=comment_id).first()
+    if comment is None:
+        return
+    else:
+        target_id = comment.author_id
+        msg_id = comment.msg_id
+    sec_comment = db.session.query(CommentSecond).filter_by(comment_id=comment_id, author_id=open_id).\
+        order_by(db.desc(CommentSecond.time)).first()
+    if sec_comment is None:
+        return
+    else:
+        sec_comment_id = sec_comment.id
+
+    reply = Reply(msg_id=msg_id, target_id=target_id, comment_id=comment_id, sec_comment_id=sec_comment_id)
+    user = User.query.filter_by(openid=open_id).first()
+    user.reply_num = user.reply_num + 1
+
+    db.session.add(reply)
+    db.session.commit()
+    value = msg_id+'_'+comment_id+'_'+sec_comment_id
+    redis_connection.set(target_id+'_sec', value, ex=300)  # 过期时间为ex 秒

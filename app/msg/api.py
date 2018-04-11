@@ -21,7 +21,7 @@ api:
 11	setUserInfo
 12  getReply
 13  getReplies
-14  replyNumMinus
+14  replyRead
 '''
 
 
@@ -623,15 +623,16 @@ def set_user_info():
     openid = receive['openid']
     if openid is None or not check_legal(openid):
         return 'failed'
-    nickname = receive['nickname'].encode('utf-8')
-    head_img = receive['head_img']
-    label = receive['label']
-    reply_num = receive['reply_num']
     user = User.query.filter_by(openid=openid).first()
-    user.nickname = nickname
-    user.head_img = head_img
-    user.label = label
-    user.reply_num = reply_num
+    if 'nickname' in receive.keys():
+        user.nickname = receive['nickname'].encode('utf-8')
+    if 'head_img' in receive.keys():
+        user.head_img = receive['head_img']
+    if 'label' in receive.keys():
+        user.label = receive['label']
+    if 'reply_num' in receive.keys():
+        user.reply_num = receive['reply_num']
+
     db.session.add(user)
     db.session.commit()
     return 'success'
@@ -784,18 +785,20 @@ def get_reply():
     reply = dict()
     value = redis_connection.get(str(openid))
     if value is not None:
+        value = value.decode('utf8')
         values = value.split('_')
         reply['msg_id'] = values[0]
         reply['comment_id'] = values[1]
 
-    value_sec = redis_connection.get(str(openid))
+    value_sec = redis_connection.get(str(openid)+'_sec')
     if value_sec is not None:
+        value_sec = value_sec.decode('utf8')
         values_secs = value_sec.split('_')
         reply_sec['msg_id'] = values_secs[0]
         reply_sec['comment_id'] = values_secs[1]
         reply_sec['sec_comment_id'] = values_secs[1]
-    if len(reply) == 0 and len(reply_sec) == 0:
-        return 'null'
+    # if len(reply) == 0 and len(reply_sec) == 0:
+    #     return 'null'
     return jsonify({'reply': reply, 'reply_sec': reply_sec})
 
 
@@ -811,9 +814,11 @@ def get_reply():
     [
         reply:
         {
+        id:"",
         msg_id:"",
         comment_id:"",
-        sec_comment_id:""
+        sec_comment_id:"",
+        is_read:bool
         }
     ]
     
@@ -828,18 +833,20 @@ def get_replies():
     if openid is None or not check_legal(openid):
         return 'failed'
     replies = db.session.query(Reply).filter_by(target_id=openid).order_by(db.desc(Reply.id)).all()
-    size = replies.size()
+    size = len(replies)
     temp = list()
     for i in replies:
         i = i.get_dict()
-    temp.append(i)
+        temp.append(i)
     return jsonify({'size': size, 'replies': temp})
 
 
 '''
 @input:
 {
+    reply_id:"",
     openid:""
+    
 }
 @output:
 signal
@@ -847,16 +854,20 @@ signal
 '''
 
 
-@msg.route('/replyNumMinus/',methods=['post'])
-def reply_num_minus():
+@msg.route('/replyRead/', methods=['post'])
+def reply_read():
     receive = request.get_json()
     openid = receive['openid']
     if openid is None or not check_legal(openid):
         return 'failed'
+    reply_id = receive['reply_id']
     user = User.query.filter_by(openid=openid).first()
-    if user.reply_num < 1:
+    if user.reply_num is None or user.reply_num < 1:
         return 'failed'
     user.reply_num = user.reply_num - 1
     db.session.add(user)
+    reply = Reply.query.filter_by(id=reply_id).first()
+    reply.is_read = True
+    db.session.add(reply)
     db.session.commit()
     return 'success'

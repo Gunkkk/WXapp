@@ -95,6 +95,7 @@ def overall_score_calculate(msg_info):
     delta_days = round(seconds / (3600 * 24), 4)
     delta_score = score - score_last
     delta_hit_times = hit_times - hit_times_last
+    print(delta_hit_times, 'dddddddddddddddddd')  # log10(delta_hit_times)报错 监控
     delta_comment_author_num = comment_author_num - comment_author_num_last
     value0 = overall_score_last
     value = (math.e ** (-1 * delta_days) * value0 + ((delta_comment_author_num + 1) * (delta_score + 1) / 5 +
@@ -129,14 +130,15 @@ def add_msg_reply(msg_id, open_id):
     else:
         comment_id = comment.id
 
-    reply = Reply(msg_id=msg_id, target_id=target_id, comment_id=comment_id)
+    reply = Reply(msg_id=msg_id, target_id=target_id, comment_id=comment_id, is_read=False)
     user = User.query.filter_by(openid=open_id).first()
     user.reply_num = user.reply_num + 1
-
+    if user.reply_num is None:
+        user.reply_num = 0
     db.session.add(user)
     db.session.add(reply)
     db.session.commit()
-    value = msg_id+'_'+comment_id
+    value = str(msg_id)+'_'+str(comment_id)
     redis_connection.set(str(target_id), value, ex=300)  # 过期时间为ex 秒
 
 
@@ -162,11 +164,14 @@ def add_comment_reply(comment_id, open_id):
     else:
         sec_comment_id = sec_comment.id
 
-    reply = Reply(msg_id=msg_id, target_id=target_id, comment_id=comment_id, sec_comment_id=sec_comment_id)
+    reply = Reply(msg_id=msg_id, target_id=target_id, comment_id=comment_id, sec_comment_id=sec_comment_id,
+                  is_read=False)
     user = User.query.filter_by(openid=open_id).first()
+    if user.reply_num is None:
+        user.reply_num = 0
     user.reply_num = user.reply_num + 1
 
     db.session.add(reply)
     db.session.commit()
-    value = msg_id+'_'+comment_id+'_'+sec_comment_id
+    value = str(msg_id)+'_'+str(comment_id)+'_'+str(sec_comment_id)
     redis_connection.set(target_id+'_sec', value, ex=300)  # 过期时间为ex 秒

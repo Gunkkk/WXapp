@@ -117,3 +117,4 @@ class Reply(db.Model, Father):
     target_id = db.Column(db.String(40), db.ForeignKey('user.openid'))
     comment_id = db.Column(db.BigInteger, db.ForeignKey('comment.id'))
     sec_comment_id = db.Column(db.BigInteger, db.ForeignKey('comment_second.id'))
+    is_read = db.Column(db.Boolean)

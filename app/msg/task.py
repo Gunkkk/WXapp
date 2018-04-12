@@ -88,6 +88,7 @@ def overall_score_calculate(msg_info):
         msg_info_last = MsgInfoLast(msg_id=msg_id, score=score, overall_score=overall_score, hit_times=hit_times,
                                     comment_author_num=comment_author_num)
     db.session.add(msg_info_last)
+    db.session.commit()
     time = db.session.query(Msg.time).filter_by(id=msg_id).first().time
     now = datetime.datetime.now()
 
@@ -95,7 +96,7 @@ def overall_score_calculate(msg_info):
     delta_days = round(seconds / (3600 * 24), 4)
     delta_score = score - score_last
     delta_hit_times = hit_times - hit_times_last
-    print(delta_hit_times, 'dddddddddddddddddd')  # log10(delta_hit_times)报错 监控
+    print(delta_hit_times, 'x', hit_times, 'x', hit_times_last, 'dddddddddddddddddd')  # log10(delta_hit_times)报错 监控
     delta_comment_author_num = comment_author_num - comment_author_num_last
     value0 = overall_score_last
     value = (math.e ** (-1 * delta_days) * value0 + ((delta_comment_author_num + 1) * (delta_score + 1) / 5 +

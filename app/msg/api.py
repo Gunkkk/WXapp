@@ -31,8 +31,8 @@ api:
 keywords只能支持绝对路径???
 '''
 f = filter.DFAFilter()
-f.parse('C:\\Users\\84074\\PycharmProjects\\WXapp\\app\\keywords') # 采用绝对地址
-#f.parse('/root/venvtest/app/keywords')
+#f.parse('C:\\Users\\84074\\PycharmProjects\\WXapp\\app\\keywords') # 采用绝对地址
+f.parse('/root/venvtest/app/keywords')
 
 # f.parse('keywords')
 
@@ -882,9 +882,10 @@ def reply_read():
     user = User.query.filter_by(openid=openid).first()
     if user.reply_num is None or user.reply_num < 1:
         return 'failed'
-    user.reply_num = user.reply_num - 1
-    db.session.add(user)
     reply = Reply.query.filter_by(id=reply_id).first()
+    if reply.is_read is False:
+        user.reply_num = user.reply_num - 1
+    db.session.add(user)
     reply.is_read = True
     db.session.add(reply)
     db.session.commit()

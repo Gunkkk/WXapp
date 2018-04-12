@@ -14,7 +14,7 @@ api:
 4	addScores
 5	getComments
 6	getMsg
-7	getMsgByIndex
+7	getMsgById
 8	getUserInfo
 9	getHotMsg
 10	getRecom
@@ -22,6 +22,7 @@ api:
 12  getReply
 13  getReplies
 14  replyRead
+15  getCommentByIndex
 '''
 
 
@@ -208,8 +209,8 @@ def getmsg(indexf, indext,openid):
 '''
 
 
-@msg.route('/getMsgByIndex/',methods=['post'])
-def get_msg_by_index():
+@msg.route('/getMsgById/',methods=['post'])
+def get_msg_by_id():
     receive = request.get_json()
     openid = receive['openid']
     if openid is None or not check_legal(openid):
@@ -220,6 +221,23 @@ def get_msg_by_index():
         return jsonify({'signal': 'not found'})
     else:
         msg = msg.get_dict()
+        msg_info = db.session.query(MsgInfo).filter_by(msg_id=msg_id).first()
+        if msg_info is not None:
+            msg['score'] = msg_info.score
+            msg['hit_times'] = msg_info.hit_times
+        else:
+            msg['score'] = 0
+            msg['hit_times'] = 0
+        msg['time'] = msg['time'].strftime("%Y-%m-%d %H:%M:%S")
+        msg['content'] = f.filter(msg['content'])
+        msg['nickname'] = db.session.query(User.nickname).filter_by(openid=msg['author_id']).first().nickname
+        msg['head_img'] = db.session.query(User.head_img).filter_by(openid=msg['author_id']).first().head_img
+        msg['comment_num'] = db.session.query(Comment).filter_by(msg_id=msg['id']).count()
+        zan_status = db.session.query(Zan.status).filter_by(msg_id=msg['id'], author_id=openid).first()
+        if zan_status is not None:
+            zan_status = zan_status.status
+
+        msg['zan_status'] = zan_status
         return jsonify({'signal': 'success', 'msg':msg})
 
 
@@ -871,3 +889,68 @@ def reply_read():
     db.session.add(reply)
     db.session.commit()
     return 'success'
+
+
+'''
+@input:
+{
+    openid:"",
+    comment_id:""
+}
+@output:
+{
+comment:
+        {
+        author_id:"",
+        target_id:"",
+        snickname:"",
+        content:"",
+        time:"",
+        anonymous:0/1,
+        visible:0/1,
+        head_img:"",
+        score:"",
+        zan_status:0/1/2,
+        comments_num:"",
+        comments:[
+                    {
+                        author_id:"",
+                        target_id:"",
+                        snickname:"",
+                        onickname:"",
+                        content:"",
+                        time:"",
+                        anonymous:0/1,
+                        visible:0/1
+                    },
+                    {}]
+        }
+}
+根据id获取comment
+'''
+
+
+@msg.route('/getCommentById/', methods=['post'])
+def get_comment_by_index():
+    receive = request.get_json()
+    openid = receive['openid']
+    if openid is None or not check_legal(openid):
+        return 'failed'
+    comment_id = receive['comment_id']
+    comment = Comment.query.filter_by(id=comment_id).first()
+    if comment is None:
+        return 'null'
+    comment = comment.get_dict()
+    comment['content'] = f.filter(comment['content'])
+    comment['snickname'] = db.session.query(User.nickname).filter_by(openid=comment['author_id']).first().nickname
+    comment['comments'] = getcommentssec(comment['id'])
+    comment['head_img'] = db.session.query(User.head_img).filter_by(openid=comment['author_id']).first().head_img
+    zan_status = db.session.query(ZanComment.status).filter_by(comment_id=comment['id'], author_id=openid).first()
+    if zan_status is not None:
+        zan_status = zan_status.status
+
+    comment['zan_status'] = zan_status
+    comment['time'] = comment['time'].strftime("%Y-%m-%d %H:%M:%S")
+    comment['comments_num'] = db.session.query(CommentSecond).filter_by(msg_id=comment['id']).count()
+
+    return jsonify({'comment': comment})

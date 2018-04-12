@@ -132,9 +132,9 @@ def add_msg_reply(msg_id, open_id):
 
     reply = Reply(msg_id=msg_id, target_id=target_id, comment_id=comment_id, is_read=False)
     user = User.query.filter_by(openid=open_id).first()
-    user.reply_num = user.reply_num + 1
     if user.reply_num is None:
         user.reply_num = 0
+    user.reply_num = user.reply_num + 1
     db.session.add(user)
     db.session.add(reply)
     db.session.commit()
@@ -170,7 +170,7 @@ def add_comment_reply(comment_id, open_id):
     if user.reply_num is None:
         user.reply_num = 0
     user.reply_num = user.reply_num + 1
-
+    db.session.add(user)
     db.session.add(reply)
     db.session.commit()
     value = str(msg_id)+'_'+str(comment_id)+'_'+str(sec_comment_id)

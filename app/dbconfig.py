@@ -15,10 +15,12 @@ JOBS = [
         'func': 'app.schedule:overall_calculate',
         'args': '',
         'trigger': 'interval',
-        'seconds': 600
+        'seconds': 6
     }
 ]
 SCHEDULER_API_ENABLED = True
 
-# CELERY_BROKER_URL = 'redis://localhost:6379/2'
-# CELERY_RESULT_BACKEND = 'redis://localhost:6379/2'  # 存储任务状态和运行结果
+CELERYD_MAX_TASKS_PER_CHILD = 1
+CELERYD_CONCURRENCY = 2
+#CELERY_BROKER_URL = 'redis://localhost:6379/2'
+#CELERY_RESULT_BACKEND = 'redis://localhost:6379/2'  # 存储任务状态和运行结果

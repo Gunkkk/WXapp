@@ -52,12 +52,8 @@ time = t-t0  /三天（72h）
 zan_num
 com_num
 hit
-value = (e^-time*value0+((△com_num+1)*(△zan_num+1)/5 +log10(△hit+1)*4))//*zan_num/hit?
-{
-value = e^-time*value0+△...
-//value *= 10^((zan_num/hit))/1000)
-
-} 
+value = (e^-time*value0+△com_num*△zan_num/5 +log10(△hit+1)*4))
+ 
 '''
 
 
@@ -74,7 +70,7 @@ def overall_score_calculate(msg_info):
         score_last = msg_info_last.score
         hit_times_last = msg_info_last.hit_times
         comment_author_num_last = msg_info_last.comment_author_num
-        overall_score_last = msg_info_last.overall_score
+    # overall_score_last = msg_info_last.overall_score
         msg_info_last.score = score
         msg_info_last.overall_score = overall_score
         msg_info_last.hit_times = hit_times
@@ -84,7 +80,7 @@ def overall_score_calculate(msg_info):
         score_last = 0
         hit_times_last = 0
         comment_author_num_last = 0
-        overall_score_last = 0
+    # overall_score_last = 0
         msg_info_last = MsgInfoLast(msg_id=msg_id, score=score, overall_score=overall_score, hit_times=hit_times,
                                     comment_author_num=comment_author_num)
     db.session.add(msg_info_last)
@@ -98,9 +94,9 @@ def overall_score_calculate(msg_info):
     delta_hit_times = hit_times - hit_times_last
     print(delta_hit_times, 'x', hit_times, 'x', hit_times_last, 'dddddddddddddddddd')  # log10(delta_hit_times)报错 监控
     delta_comment_author_num = comment_author_num - comment_author_num_last
-    value0 = overall_score_last
-    value = (math.e ** (-1 * delta_days) * value0 + ((delta_comment_author_num + 1) * (delta_score + 1) / 5 +
-                                                     math.log10(delta_hit_times + 1) * 4))
+    value0 = overall_score
+    value = (math.e ** (-1 * delta_days) * value0 + delta_comment_author_num * delta_score / 5 +
+             math.log10(delta_hit_times + 1) * 4)
 
     # i['overall_score'] = value
     result = MsgInfo.query.filter_by(msg_id=msg_id).first()

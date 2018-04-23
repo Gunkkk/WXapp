@@ -2,9 +2,6 @@ from .import msg
 from app import db, cache, filter, redis_connection
 from app.model import Msg, Comment, User, Zan, MsgInfo, CommentSecond, ZanComment, Reply
 from flask import request, jsonify
-import requests
-import json
-import hashlib
 from app.msg.task import *
 '''
 api:
@@ -15,14 +12,17 @@ api:
 5	getComments
 6	getMsg
 7	getMsgById
-8	getUserInfo
+
 9	getHotMsg
 10	getRecom
-11	setUserInfo
+
 12  getReply
 13  getReplies
 14  replyRead
 15  getCommentByIndex
+
+
+
 '''
 
 
@@ -69,7 +69,8 @@ def hello_world():
     datetime:"2018-03-21 21:32:23",
     anonymous:0/1,
     longitude:"",
-    latitude:""
+    latitude:"",
+    type:""
 }
 @output:
 signal
@@ -87,13 +88,15 @@ def add_msg():
     anonymous = receive['anonymous']
     longitude = receive['longitude']
     latitude = receive['latitude']
-
+    picture = receive['pricture']
+    type = receive['type']
     #cache.delete_memoized(getmsg)
     # 删除缓存
     # 被遗忘而不会被删除 设定较短生存周期
     msg = Msg(author_id=openid, content=content,  # 需要一个触发器进行msginfo的初始化
               time=datetime, anonymous=anonymous,
-              longitude=longitude, latitude=latitude)
+              longitude=longitude, latitude=latitude,
+              picture=picture, type=type)
     db.session.add(msg)
     #try:
     db.session.commit()
@@ -124,7 +127,8 @@ def add_msg():
              comment_num:"",
              zan_status:0/1/2,
              hit_times:"",
-             picture:""
+             picture:"",
+             type:""
              },
              {},…
              ]
@@ -140,7 +144,11 @@ def get_msg():
         return 'failed'
     indexf = receive['indexf']
     indext = receive['indext']
-    string = getmsg(int(indexf), int(indext), openid)
+    if 'type' in receive.keys():
+        type = receive['type']
+    else:
+        type = 0
+    string = getmsg(int(indexf), int(indext), openid, type)
     #print(string)
     return jsonify({'msglist': string})
 
@@ -151,8 +159,12 @@ def get_msg():
 
 
 #@cache.memoize(timeout=300)
-def getmsg(indexf, indext,openid):
-    msgs = db.session.query(Msg).order_by(db.desc(Msg.time)).offset(indexf).limit(int(indext) - int(indexf) + 1)
+def getmsg(indexf, indext,openid, type):
+    if type == 0:
+        msgs = db.session.query(Msg).order_by(db.desc(Msg.time)).offset(indexf).limit(int(indext) - int(indexf) + 1)
+    else:
+        msgs = db.session.query(Msg).filter_by(type=type).order_by(db.desc(Msg.time)).offset(indexf).\
+            limit(int(indext) - int(indexf) + 1)
     msglist = []
     for i in msgs:
         i = i.get_dict()
@@ -201,7 +213,8 @@ def getmsg(indexf, indext,openid):
              comment_num:"",
              zan_status:0/1/2,
              hit_times:"",
-             picture:""
+             picture:"",
+             type:""
             }
 }
 根据msgid来获取指定的msg 进行消息回复提示的定位显示
@@ -553,107 +566,7 @@ def add_scores():
 
 
 
-'''
-@intput:
-{
-    code:"",
-    nickname:"",
-    head_img:""
-}
-@output:
-{
-    "result":
-    {
-        "user_type":"new"/"old",
-        "user_info":
-        {
-            "openid":"",
-            "nickname":"",
-            "head_img:"",
-            "label":"",
-            "reply_num":""
-        }
-    }
-}/false
-说明：
-    用户登录操作
-'''
 
-appid = 'wx045b0b63f6b9f5f9'
-secret = '8e38d54e64e4f0fe89418148a7982bb3'
-
-
-@msg.route('/getUserInfo/', methods=['post'])
-def get_user_info():
-    receive = request.get_json()
-    code = receive['code']
-    url = 'https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code' % \
-          (appid, secret, code)
-
-    ## {"session_key":"S1V0xJ88wooatu6I\/Hao4w==","openid":"omyxV4wFovxLS2CtuljRIIKiIcjU"}
-    r = requests.get(url)
-    returns = json.loads(r.text)
-
-    if 'openid' not in returns.keys():
-        return 'false'
-    session_key = returns['session_key']
-    openid = returns['openid']
-    nickname = receive['nickname'].encode('utf-8')
-    head_img = receive['head_img']
-    result = dict()
-    openid = hashlib.md5(openid.encode(encoding='UTF-8')).hexdigest() # MD5加密
-    user = User.query.filter_by(openid=openid).first()
-    if user is None:
-        user = User(openid=openid, nickname=nickname, head_img=head_img)
-        db.session.add(user)
-        db.session.commit()
-        user.openid = openid
-        result['user_type'] = 'new'
-    else:
-        result['user_type'] = 'old'
-    user = user.get_dict()
-
-    result['user_info'] = user
-    # raw_user = User.query.filer_by(openid=openid).first()
-    # if raw_user != None:
-    result['session_key'] = session_key
-    return jsonify({"result": result})
-
-'''
-@input:
-    {
-            "openid":"",
-            "nickname":"",
-            "head_img":"",
-            "label":"",
-            "reply_num":
-    }
-@output
-signal
-
-修改用户信息       
-'''
-
-
-@msg.route('/setUserInfo/', methods=['post'])
-def set_user_info():
-    receive = request.get_json()
-    openid = receive['openid']
-    if openid is None or not check_legal(openid):
-        return 'failed'
-    user = User.query.filter_by(openid=openid).first()
-    if 'nickname' in receive.keys():
-        user.nickname = receive['nickname'].encode('utf-8')
-    if 'head_img' in receive.keys():
-        user.head_img = receive['head_img']
-    if 'label' in receive.keys():
-        user.label = receive['label']
-    if 'reply_num' in receive.keys():
-        user.reply_num = receive['reply_num']
-
-    db.session.add(user)
-    db.session.commit()
-    return 'success'
 
 
 '''

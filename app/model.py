@@ -24,6 +24,7 @@ class Msg(db.Model, Father):
     picture = db.Column(db.String(200))
 #    overall_score = db.Column(db.Float)
 #    hit_times = db.Column(db.BigInteger)
+    type = db.Column(db.String(20))
 
 
 # 需要触发器来进行初始化
@@ -92,6 +93,7 @@ class User(db.Model, Father):
     head_img = db.Column(db.String(200))
     label = db.Column(db.String(50))
     reply_num = db.Column(db.Integer)
+    type = db.Column(db.String(20))
 
 
 class Zan(db.Model, Father):
@@ -118,3 +120,20 @@ class Reply(db.Model, Father):
     comment_id = db.Column(db.BigInteger, db.ForeignKey('comment.id'))
     sec_comment_id = db.Column(db.BigInteger, db.ForeignKey('comment_second.id'))
     is_read = db.Column(db.Boolean)
+
+
+class UserVerify(db.Model, Father):
+    __tablename__ = 'user_verify'
+    id = db.Column(db.Integer, primary_key=True)
+    openid = db.Column(db.String(40), db.ForeignKey('user.openid'))
+    content = db.Column(db.String(280))
+    picture = db.Column(db.String(200))
+    time = db.Column(db.DateTime)
+    user_type = db.Column(db.String(20))
+
+
+class Admin(db.Model, Father):
+    __tablename__ = 'verify_admin'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(20))
+    pwd = db.Column(db.String(20))

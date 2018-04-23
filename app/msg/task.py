@@ -66,6 +66,7 @@ def overall_score_calculate(msg_info):
     hit_times = i['hit_times']
     comment_author_num = i['comment_author_num']
     overall_score = i['overall_score']
+    print(i)
     if msg_info_last is not None:
         score_last = msg_info_last.score
         hit_times_last = msg_info_last.hit_times
@@ -100,7 +101,7 @@ def overall_score_calculate(msg_info):
 
     # i['overall_score'] = value
     result = MsgInfo.query.filter_by(msg_id=msg_id).first()
-    print(result.overall_score)
+    print(result.__dict__)
     result.overall_score = value
     db.session.add(result)
     db.session.commit()

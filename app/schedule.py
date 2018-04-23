@@ -7,8 +7,8 @@ def overall_calculate():
     count = MsgInfo.query.count()
     for i in range(count):
         msg_info = MsgInfo.query.order_by(MsgInfo.msg_id).limit(1).offset(i).first()
-        print(msg_info.__dict__)
-        overall_score_calculate.delay(msg_info.get_dict())
+    # print(msg_info.__dict__)
+        overall_score_calculate(msg_info.__dict__)
     print(datetime.datetime.now(), 'calculate completed!')
     #
     # msg_info = db.session.query(MsgInfo).all()#yield_per(100)#.enable_eagerloads(False).order_by(MsgInfo.msg_id)
@@ -23,7 +23,13 @@ def overall_calculate():
     # print(datetime.datetime.now(), 'calculate completed!')
 
 
-def overall_score_calculate1(msg_info):
+'''
+加入任务队列之后出现问题
+
+'''
+
+
+def overall_score_calculate(msg_info):
     i = msg_info
     msg_id = i['msg_id']
     msg_info_last = MsgInfoLast.query.filter_by(msg_id=msg_id).first()

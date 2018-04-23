@@ -28,3 +28,7 @@ cache.init_app(app)
 
 from .msg import msg
 app.register_blueprint(msg, url_prefix='/msg')
+from .user import user
+app.register_blueprint(user, url_prefix='/user')
+from . verifyStage import verify
+app.register_blueprint(verify, url_prefix='/verify')

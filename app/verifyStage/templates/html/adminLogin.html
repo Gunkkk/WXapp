@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>verify</title>
+<style>
+body {
+background-color:white;
+background-attachment:scroll;
+}
+#title{
+position:fixed;
+left:100px;
+top:20px;
+font-size:25px;
+font-family:"Arial","Microsoft YaHei","黑体","宋体",sans-serif;
+}
+#form{
+position:fixed;
+top:100px;
+left:120px;
+border-width:2px;
+background-color:#FAEBD7;
+padding:3px;
+}
+#name{
+font-size:15px;
+text-align:left;
+letter-spacing:10px;
+}
+#pwd{
+font-size:15px;
+text-align:left;
+letter-spacing:10px;
+}
+#flag{
+font-size:10px;
+font-weight:bold;
+}
+#foot{
+position:fixed;
+left:100px;
+top:230px;
+font-weight:bold;
+font-style:italic;
+}
+</style>
+
+</head>
+<body>
+	<div id="title">
+		<h4>adminLogin Page</h4>
+	</div>
+    <div>{{msg}}</div>
+	<div id ="form">
+	<form action="/verify/adminLogin/" method="post">
+		<div id="name">用户名: <input type="text" name="name"></div>
+		<div id="pwd">密&nbsp;&nbsp;码: <input type="pwd" name = "pwd"></div>
+		<div id="button"><input type= "submit" value= "提交"></div>
+	</form>
+	</div>
+	<div id="foot">
+
+	</div>
+</body>
+</html>

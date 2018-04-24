@@ -1,17 +1,17 @@
 from . import verify
 from app import db
 from app.model import UserVerify, Admin, User
-from flask import render_template, request, redirect, url_for, jsonify
-
+from flask import render_template, request, redirect, url_for, jsonify, session
+from app.verifyStage.task import *
 '''
-18 userTypeVerify
-19 adminLogin
-20 getUserVerify
-21 verifyComplete
+17 userTypeVerify
+18 adminLogin
+19 getUserVerify
+20 verifyComplete
 '''
 
 
-@verify.route('/userTypeVerify/')
+@verify.route('/index/')
 def user_type_verify():
     return render_template('/html/adminLogin.html')
 
@@ -28,6 +28,7 @@ def admin_login():
     elif admin.pwd != pwd:
         msg = 'password error!'
     else:
+        session['username'] = name
         return redirect(url_for('verify.get_user_verify'))
 
     return render_template('/html/adminLogin.html', msg=msg)
@@ -35,6 +36,8 @@ def admin_login():
 
 @verify.route('/getUserVerify/', methods=['post', 'get'])
 def get_user_verify():
+    if 'username' not in session:
+        return render_template('/html/adminLogin.html')
     list = UserVerify.query.all()
     temp = []
     for i in list:
@@ -43,8 +46,8 @@ def get_user_verify():
     return render_template('/html/verify.html', list=temp)
 
 
-@verify.route('/verifyComplete/<id>/<flag>/<type>')
-def verify_complete(id, flag, type):
+@verify.route('/verifyComplete/<id>/<flag>/<type>/<verify_content>')
+def verify_complete(id, flag, type, verify_content):
     verify = UserVerify.query.filter_by(id=id).first()
     if verify is None:
         return 'wrong id'
@@ -55,6 +58,7 @@ def verify_complete(id, flag, type):
             return 'wrong openid'
         user.type = type
         db.session.add(user)
+    get_verify_reply.delay(openid, verify_content)
     db.session.delete(verify)
     db.session.commit()
     return 'success'

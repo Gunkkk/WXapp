@@ -2,7 +2,7 @@ from app import redis_connection, db, celery
 from app.model import MsgInfo, Comment, CommentSecond, MsgInfoLast, Msg, Reply, User
 import datetime
 import math
-HIT_TIME_PER = 1
+HIT_TIME_PER = 10
 
 
 @celery.task
@@ -58,7 +58,7 @@ value = (e^-time*value0+△com_num*△zan_num/5 +log10(△hit+1)*4))
 
 
 @celery.task
-def overall_score_calculate(msg_info):
+def overall_score_calculate11(msg_info):
     i = msg_info
     msg_id = i['msg_id']
     msg_info_last = MsgInfoLast.query.filter_by(msg_id=msg_id).first()
@@ -174,3 +174,5 @@ def add_comment_reply(comment_id, open_id):
     db.session.commit()
     value = str(msg_id)+'_'+str(comment_id)+'_'+str(sec_comment_id)
     redis_connection.set(target_id+'_sec', value, ex=300)  # 过期时间为ex 秒
+
+

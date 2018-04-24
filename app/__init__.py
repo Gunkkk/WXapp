@@ -16,7 +16,7 @@ cache = Cache(config={
 })
 app = Flask(__name__)
 app.config.from_pyfile('dbconfig.py')
-
+app.secret_key = '123456'
 celery = Celery('tasks', broker='redis://localhost:6379/2', backend='redis://localhost:6379/2')
 celery.conf.update(app.config)
 

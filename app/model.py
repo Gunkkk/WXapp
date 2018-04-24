@@ -119,6 +119,7 @@ class Reply(db.Model, Father):
     target_id = db.Column(db.String(40), db.ForeignKey('user.openid'))
     comment_id = db.Column(db.BigInteger, db.ForeignKey('comment.id'))
     sec_comment_id = db.Column(db.BigInteger, db.ForeignKey('comment_second.id'))
+    verify_content = db.Column(db.String(50))
     is_read = db.Column(db.Boolean)
 
 
@@ -137,3 +138,4 @@ class Admin(db.Model, Father):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(20))
     pwd = db.Column(db.String(20))
+

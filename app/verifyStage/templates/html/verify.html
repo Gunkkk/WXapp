@@ -3,8 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+    <link href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+
+<!-- jQuery文件。务必在bootstrap.min.js 之前引入 -->
+    <script src="https://cdn.bootcss.com/jquery/2.1.1/jquery.min.js"></script>
+
+<!-- 最新的 Bootstrap 核心 JavaScript 文件 -->
+    <script src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 </head>
 <body>
-    {{ list }}
+<div class="container">
+	<div class="row clearfix">
+		<div class="col-md-12 column">
+			<div class="row clearfix">
+				<div class="col-md-12 column">
+					<h3>
+						h3. 这是一套可视化布局系统.
+					</h3>
+				</div>
+			</div>
+			<div class="row clearfix">
+				<div class="col-md-12 column">
+					<table class="table">
+						<thead>
+							<tr>
+								<th>
+									申请内容
+								</th>
+								<th>
+									时间
+								</th>
+								<th>
+									图片资料
+								</th>
+								<th>
+									申请类型
+								</th>
+                                <th id='verify_content'>
+                                    通过
+                                </th>
+                                <th>
+                                    不通过
+                                </th>
+							</tr>
+						</thead>
+						<tbody>
+                            {% for i in list %}
+                                <tr>
+                                    <td>{{ i['content'] }}</td>
+                                    <td>{{ i['time'] }}</td>
+                                    <td>{{ i['picture'] }}</td>
+                                    <td>{{ i['type'] }}</td>
+                                    <td><button>√</button></td>
+                                    <td><button>X</button></td>
+                                </tr>
+                            {% endfor %}
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
 </body>
 </html>

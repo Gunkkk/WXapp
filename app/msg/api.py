@@ -88,7 +88,7 @@ def add_msg():
     anonymous = receive['anonymous']
     longitude = receive['longitude']
     latitude = receive['latitude']
-    picture = receive['pricture']
+    picture = receive['picture']
     type = receive['type']
     #cache.delete_memoized(getmsg)
     # 删除缓存
@@ -698,7 +698,10 @@ def get_recom():
         comment_id:"",
         sec_comment_id:""
         }
-    ]
+  reply_verify:
+        {
+        verify_content:""
+        }
 }
 
  value = msg_id+'_'+comment_id+'_'+sec_comment_id
@@ -714,6 +717,7 @@ def get_reply():
         return 'failed'
     reply_sec = dict()
     reply = dict()
+    reply_verify = dict()
     value = redis_connection.get(str(openid))
     if value is not None:
         value = value.decode('utf8')
@@ -730,7 +734,12 @@ def get_reply():
         reply_sec['sec_comment_id'] = values_secs[1]
     # if len(reply) == 0 and len(reply_sec) == 0:
     #     return 'null'
-    return jsonify({'reply': reply, 'reply_sec': reply_sec})
+
+    value_verify = redis_connection.get(str(openid)+'_verify')
+    if value_verify is not None:
+        value = value.decode('utf8')
+        reply_verify['verify_content'] = value
+    return jsonify({'reply': reply, 'reply_sec': reply_sec, 'reply_verify': reply_verify})
 
 
 '''
@@ -749,11 +758,13 @@ def get_reply():
         msg_id:"",
         comment_id:"",
         sec_comment_id:"",
-        is_read:bool
+        is_read:bool,
+        verify_content:"" 
         }
     ]
-    
 }
+
+如果有内容则为审核消息
 '''
 
 

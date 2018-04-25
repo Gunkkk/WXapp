@@ -18,13 +18,13 @@
 			<div class="row clearfix">
 				<div class="col-md-12 column">
 					<h3>
-						h3. 这是一套可视化布局系统.
-					</h3>
+					    审核系统
+                    </h3>
 				</div>
 			</div>
 			<div class="row clearfix">
 				<div class="col-md-12 column">
-					<table class="table">
+					<table class="table" id="table">
 						<thead>
 							<tr>
 								<th>
@@ -50,12 +50,13 @@
 						<tbody>
                             {% for i in list %}
                                 <tr>
+                                    <td hidden>{{ i['id'] }}</td>
                                     <td>{{ i['content'] }}</td>
                                     <td>{{ i['time'] }}</td>
                                     <td>{{ i['picture'] }}</td>
-                                    <td>{{ i['type'] }}</td>
-                                    <td><button>√</button></td>
-                                    <td><button>X</button></td>
+                                    <td>{{ i['user_type'] }}</td>
+                                    <td><a class="btn"  onclick="getcontent(this,0)">√</a></td>
+                                    <td><a class="btn" id="content" onclick="javascript:getcontent(this,1)" >X</a></td>
                                 </tr>
                             {% endfor %}
 						</tbody>
@@ -65,5 +66,37 @@
 		</div>
 	</div>
 </div>
+
+<script>
+
+
+    function getcontent(obj,is){
+        if (is==1) {
+            var content = window.prompt('输入');
+            var flag = '不通过'
+        }else{
+            var content = null;
+            var flag = '通过';
+        }
+        //var content = document.forms['form'].verify_content.value
+        var $td = $(obj).parents('tr').children('td');
+        var id = $td.eq(0).text();
+        var type = $td.eq(4).text()
+        //window.location='/verifyComplete?id='+id+'&&flag='+flag+'&&type='+type+'&&verify_content='+content
+        $.ajax({
+                    url:'/verify/verifyComplete?id='+id+'&&flag='+flag+'&&type='+type+'&&verify_content='+content,
+                    data:null,
+                    type:'get',
+                    success:function (data) {
+                        if(data=='success'){
+                        location.reload();
+                        }else {
+                            data=eval("("+data+")");
+                            $('#msg').html(data.msg);
+                        }
+                    }
+                });
+    }
+</script>
 </body>
 </html>

@@ -46,8 +46,12 @@ def get_user_verify():
     return render_template('/html/verify.html', list=temp)
 
 
-@verify.route('/verifyComplete/<id>/<flag>/<type>/<verify_content>')
-def verify_complete(id, flag, type, verify_content):
+@verify.route('/verifyComplete/', methods=['post', 'get'])
+def verify_complete():
+    id = request.args.get('id')
+    flag = request.args.get('flag')
+    type = request.args.get('type')
+    verify_content = request.args.get('verify_content')
     verify = UserVerify.query.filter_by(id=id).first()
     if verify is None:
         return 'wrong id'

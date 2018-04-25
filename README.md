@@ -5,5 +5,5 @@
 
 
 <foot>
-  Copyright © 2018 Gunkkk.
+  Copyright © 2018 Gunkkk. All Rights Reserved. 
 </foot>

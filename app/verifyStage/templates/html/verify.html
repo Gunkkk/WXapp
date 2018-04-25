@@ -10,6 +10,9 @@
 
 <!-- 最新的 Bootstrap 核心 JavaScript 文件 -->
     <script src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <style>
+        .max{width:100%;height:100%;}
+    </style>
 </head>
 <body>
 <div class="container">
@@ -53,7 +56,11 @@
                                     <td hidden>{{ i['id'] }}</td>
                                     <td>{{ i['content'] }}</td>
                                     <td>{{ i['time'] }}</td>
-                                    <td>{{ i['picture'] }}</td>
+                                    {% if  i['picture'] %}
+                                        <td><a target="_blank" href={{ i['picture'] }} > <img id='img' height="100px" width="100px" src={{ i['picture'] }}></a></td>
+                                        {% else %}
+                                        <td></td>
+                                    {% endif %}
                                     <td>{{ i['user_type'] }}</td>
                                     <td><a class="btn"  onclick="getcontent(this,0)">√</a></td>
                                     <td><a class="btn" id="content" onclick="javascript:getcontent(this,1)" >X</a></td>
@@ -97,6 +104,12 @@
                     }
                 });
     }
+{#    $(function(){
+        $('#img').click(function(){
+        $(this).toggleClass('min');
+        $(this).toggleClass('max');
+        });
+});#}
 </script>
 </body>
 </html>

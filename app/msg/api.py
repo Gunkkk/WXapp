@@ -3,6 +3,7 @@ from app import db, cache, filter, redis_connection
 from app.model import Msg, Comment, User, Zan, MsgInfo, CommentSecond, ZanComment, Reply
 from flask import request, jsonify
 from app.msg.task import *
+from app.user.api import check_legal
 '''
 api:
 1	addMsg
@@ -31,8 +32,8 @@ api:
 keywords只能支持绝对路径???
 '''
 f = filter.DFAFilter()
-f.parse('C:\\Users\\84074\\PycharmProjects\\WXapp\\app\\keywords') # 采用绝对地址
-#f.parse('/root/venvtest/app/keywords')
+#f.parse('C:\\Users\\84074\\PycharmProjects\\WXapp\\app\\keywords') # 采用绝对地址
+f.parse('/root/venvtest/app/keywords')
 
 # f.parse('keywords')
 
@@ -47,13 +48,13 @@ true/false
 '''
 
 
-@cache.memoize(timeout=3600)
-def check_legal(openid_md5):
-    user = db.session.query(User).filter_by(openid=openid_md5).first()
-    if user is None:
-        return False
-    else:
-        return True
+# @cache.memoize(timeout=3600)
+# def check_legal(openid_md5):
+#     user = db.session.query(User).filter_by(openid=openid_md5).first()
+#     if user is None:
+#         return False
+#     else:
+#         return True
 
 
 @msg.route("/")

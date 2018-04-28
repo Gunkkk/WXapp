@@ -1,5 +1,5 @@
 from . import user
-from app import db
+from app import db,cache
 from app.model import User, UserVerify
 from flask import request, jsonify
 import requests
@@ -12,6 +12,15 @@ import json
 16	applyUserType
  
 '''
+
+
+@cache.memoize(timeout=3600)
+def check_legal(openid_md5):
+    user = db.session.query(User).filter_by(openid=openid_md5).first()
+    if user is None:
+        return False
+    else:
+        return True
 
 
 '''
@@ -32,7 +41,8 @@ import json
             "nickname":"",
             "head_img:"",
             "label":"",
-            "reply_num":""
+            "reply_num":"",
+            "session_key":
         }
     }
 }/false
@@ -42,14 +52,6 @@ import json
 
 appid = 'wx045b0b63f6b9f5f9'
 secret = '8e38d54e64e4f0fe89418148a7982bb3'
-
-
-def check_legal(openid_md5):
-    user = db.session.query(User).filter_by(openid=openid_md5).first()
-    if user is None:
-        return False
-    else:
-        return True
 
 
 @user.route('/getUserInfo/', methods=['post'])

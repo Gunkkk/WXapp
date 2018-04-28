@@ -720,6 +720,7 @@ def get_reply():
     reply_verify = dict()
     value = redis_connection.get(str(openid))
     if value is not None:
+        redis_connection.delete(str(openid))  # bug modified
         value = value.decode('utf8')
         values = value.split('_')
         reply['msg_id'] = values[0]
@@ -727,6 +728,7 @@ def get_reply():
 
     value_sec = redis_connection.get(str(openid)+'_sec')
     if value_sec is not None:
+        redis_connection.delete(str(openid)+'_sec')
         value_sec = value_sec.decode('utf8')
         values_secs = value_sec.split('_')
         reply_sec['msg_id'] = values_secs[0]
@@ -737,6 +739,7 @@ def get_reply():
 
     value_verify = redis_connection.get(str(openid)+'_verify')
     if value_verify is not None:
+        redis_connection.delete(str(openid)+'_verify')
         value = value.decode('utf8')
         reply_verify['verify_content'] = value
     return jsonify({'reply': reply, 'reply_sec': reply_sec, 'reply_verify': reply_verify})

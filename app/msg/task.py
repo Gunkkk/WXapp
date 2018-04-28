@@ -12,7 +12,8 @@ def get_hit(msg_id):
     if redis_connection.hexists('hit_time', msg_id):
         times = int(redis_connection.hget('hit_time', msg_id))
         if times >= HIT_TIME_PER:
-            redis_connection.hset('hit_time', msg_id, 0)
+            # redis_connection.hset('hit_time', msg_id, 0) # optimization  delete it instead of set 0
+            redis_connection.hdel('hit_time', msg_id)
             times += 1
             msg_info = MsgInfo.query.filter_by(msg_id=msg_id).first()
             if msg_info is None:

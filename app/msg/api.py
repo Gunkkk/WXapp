@@ -21,7 +21,7 @@ api:
 13  getReplies
 14  replyRead
 15  getCommentByIndex
-
+16  deleteReplyById
 
 
 '''
@@ -883,3 +883,29 @@ def get_comment_by_index():
     comment['comments_num'] = db.session.query(CommentSecond).filter_by(msg_id=comment['id']).count()
 
     return jsonify({'comment': comment})
+
+
+
+'''
+@input:
+{
+    openid:,
+    reply_id:
+}
+'''
+
+
+@msg.route('/deleteReplyById/', methods=['post'])
+def delete_reply_by_id():
+    receive = request.get_json()
+    openid = receive['openid']
+    if openid is None or not check_legal(openid):
+        return 'failed'
+    reply_id = receive['reply_id']
+    reply = Reply.query.filter_by(id=reply_id).first()
+    if reply is None:
+        return 'failed'
+    db.session.delete(reply)
+    db.session.commit()
+    return 'success'
+
